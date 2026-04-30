@@ -1,13 +1,16 @@
 "use server";
-
 import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
 
 import {
   CreateProjectSchema,
   UpdateProjectSchema,
   DeleteProjectSchema,
 } from "@/lib/validators/project";
+
+type ProjectImageInput = {
+  url: string;
+  key?: string;
+};
 
 // ==============================
 // GET PROJECTS
@@ -16,11 +19,14 @@ export async function getProjects() {
   try {
     const projects = await prisma.project.findMany({
       orderBy: { order: "asc" },
+      include: {
+        images: true,
+      },
     });
 
     return { success: true, data: projects };
-  } catch (_error) {
-    console.error("GET_PROJECTS_ERROR:", _error);
+  } catch (error) {
+    console.error("GET_PROJECTS_ERROR:", error);
 
     return {
       success: false,
@@ -33,26 +39,26 @@ export async function getProjects() {
 // ==============================
 // CREATE PROJECT
 // ==============================
-export async function createProject(formData: FormData) {
+export async function createProject(input: unknown) {
   try {
-    const raw = Object.fromEntries(formData.entries());
+    const parsed = CreateProjectSchema.parse(input);
 
-    const parsed = CreateProjectSchema.parse({
-      ...raw,
-      tech: JSON.parse(raw.tech as string),
-      order: raw.order ? Number(raw.order) : 0,
+    const project = await prisma.project.create({
+      data: {
+        ...parsed,
+
+        images: {
+          create: parsed.images.map((img: ProjectImageInput) => ({
+            url: img.url,
+            key: img.key,
+          })),
+        },
+      },
     });
 
-    await prisma.project.create({
-      data: parsed,
-    });
-
-    revalidatePath("/");
-    revalidatePath("/admin/projects");
-
-    return { success: true };
-  } catch (_error) {
-    console.error("CREATE_PROJECT_ERROR:", _error);
+    return { success: true, data: project };
+  } catch (error) {
+    console.error("CREATE_PROJECT_ERROR:", error);
 
     return {
       success: false,
@@ -64,29 +70,32 @@ export async function createProject(formData: FormData) {
 // ==============================
 // UPDATE PROJECT
 // ==============================
-export async function updateProject(formData: FormData) {
+export async function updateProject(input: unknown) {
   try {
-    const raw = Object.fromEntries(formData.entries());
-
-    const parsed = UpdateProjectSchema.parse({
-      ...raw,
-      tech: raw.tech ? JSON.parse(raw.tech as string) : undefined,
-      order: raw.order ? Number(raw.order) : undefined,
-    });
+    const parsed = UpdateProjectSchema.parse(input);
 
     const { id, ...data } = parsed;
 
     await prisma.project.update({
       where: { id },
-      data,
+      data: {
+        ...data,
+
+        images: parsed.images
+          ? {
+              deleteMany: {},
+              create: parsed.images.map((img: ProjectImageInput) => ({
+                url: img.url,
+                key: img.key,
+              })),
+            }
+          : undefined,
+      },
     });
 
-    revalidatePath("/");
-    revalidatePath("/admin/projects");
-
     return { success: true };
-  } catch (_error) {
-    console.error("UPDATE_PROJECT_ERROR:", _error);
+  } catch (error) {
+    console.error("UPDATE_PROJECT_ERROR:", error);
 
     return {
       success: false,
@@ -98,22 +107,17 @@ export async function updateProject(formData: FormData) {
 // ==============================
 // DELETE PROJECT
 // ==============================
-export async function deleteProject(formData: FormData) {
+export async function deleteProject(input: unknown) {
   try {
-    const raw = Object.fromEntries(formData.entries());
-
-    const { id } = DeleteProjectSchema.parse(raw);
+    const { id } = DeleteProjectSchema.parse(input);
 
     await prisma.project.delete({
       where: { id },
     });
 
-    revalidatePath("/");
-    revalidatePath("/admin/projects");
-
     return { success: true };
-  } catch (_error) {
-    console.error("DELETE_PROJECT_ERROR:", _error);
+  } catch (error) {
+    console.error("DELETE_PROJECT_ERROR:", error);
 
     return {
       success: false,
