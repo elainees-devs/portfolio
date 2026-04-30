@@ -17,15 +17,27 @@ model Project {
   id          String   @id @default(cuid())
   title       String
   description String
-  tech        String[] // Maps to TEXT[] in PostgreSQL
+  tech        String[]
   github      String
   link        String?
   category    String
   order       Int      @default(0)
+
+  images      ProjectImage[]  // store UploadThing URLs here
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@map("Project")
+}
+
+model ProjectImage {
+  id        String  @id @default(cuid())
+  url       String  // UploadThing file URL
+  key       String? // optional: UploadThing fileKey (useful for deletes)
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model Experience {
