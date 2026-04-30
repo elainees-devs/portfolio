@@ -2,53 +2,46 @@ import { z } from "zod";
 
 /**
  * Project Validation Schema
- * 
  */
 export const CreateProjectSchema = z.object({
-  title: z
-    .string()
-    .min(2, "Title must be at least 2 characters")
-    .max(100, "Title is too long"),
+  title: z.string().min(2).max(100),
 
-  description: z
-    .string()
-    .min(10, "Description must be at least 10 characters")
-    .max(1000, "Description is too long"),
+  description: z.string().min(10).max(1000),
 
-  tech: z
-    .array(z.string().min(1))
-    .min(1, "At least one tech is required"),
+  tech: z.array(z.string().min(1)).min(1),
 
-  github: z
-    .string()
-    .url("GitHub must be a valid URL")
-    .min(1, "GitHub link is required"),
+  images: z.array(
+    z.object({
+      url: z.string().url(),
+      key: z.string().optional(),
+    })
+  ),
 
-  link: z
-    .union([z.string().url(), z.literal(""), z.null()])
-    .optional(),
+  github: z.string().url().min(1),
 
-  category: z
-    .string()
-    .min(2, "Category is required")
-    .max(50, "Category is too long"),
+  link: z.union([z.string().url(), z.literal(""), z.null()]).optional(),
 
-  order: z
-    .number()
-    .int()
-    .nonnegative(),
-});
+  category: z.string().min(2).max(50),
 
-export const UpdateProjectSchema = CreateProjectSchema.partial().extend({
-  id: z.string().uuid("ID must be a valid UUID"),
-});
-
-export const DeleteProjectSchema = z.object({
-  id: z.string().uuid("ID must be a valid UUID"),
+  order: z.number().int().nonnegative(),
 });
 
 /**
- * Type inference for reuse in frontend/admin UI
+ * Update schema
+ */
+export const UpdateProjectSchema = CreateProjectSchema.partial().extend({
+  id: z.string().cuid(), //better than uuid if using Prisma cuid()
+});
+
+/**
+ * Delete schema
+ */
+export const DeleteProjectSchema = z.object({
+  id: z.string().cuid(),
+});
+
+/**
+ * Types
  */
 export type ProjectInput = z.infer<typeof CreateProjectSchema>;
 export type ProjectUpdateInput = z.infer<typeof UpdateProjectSchema>;
