@@ -36,8 +36,7 @@ export const CreateProjectSchema = z.object({
   order: z
     .number()
     .int()
-    .nonnegative()
-    .default(0),
+    .nonnegative(),
 });
 
 export const UpdateProjectSchema = CreateProjectSchema.partial().extend({
