@@ -31,7 +31,6 @@ export const CreateExperienceSchema = z.object({
     .number()
     .int()
     .nonnegative()
-    .default(0),
 });
 
 export const UpdateExperienceSchema = CreateExperienceSchema.partial().extend({
